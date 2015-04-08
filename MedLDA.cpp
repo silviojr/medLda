@@ -136,7 +136,7 @@ double MedLDA::inference(Document* doc, const int &docix,
 			}
 			//fprintf(fileptr, "\n");
 
-			for(k = 0; k<m_nK;k++){
+			for(int k = 0; k<m_nK;k++){
 				if (k > 0) phisum = log_sum(phisum, phi[n][k]);
 				else       phisum = phi[n][k]; // note, phi is in log space
 			}
@@ -246,7 +246,7 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 				
 			}
 
-			for(k = 0; k<m_nK;k++){
+			for(int k = 0; k<m_nK;k++){
 				if (k > 0) phisum = log_sum(phisum, phi[n][k]);
 				else       phisum = phi[n][k]; // note, phi is in log space
 			}
