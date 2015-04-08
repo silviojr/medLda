@@ -467,7 +467,7 @@ int MedLDA::run_em(char* start, char* directory, Corpus* corpus, Params *param)
 					phi[n][k] = 1.0 / (double) param->NTOPICS;
 				}
 
-			if ((d % 1) == 0) printf("Document %d\n",d);
+			if ((d % 100) == 0) printf("Document %d\n",d);
 			lhood += doc_e_step( &(corpus->docs[d]), var_gamma[d], phi, ss, param);
 		}
 
