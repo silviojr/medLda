@@ -72,7 +72,7 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		ss->alpha_suffstats[k] -= /*m_nK * */digamma(gamma_sum);
 	}
 	depois = get_runtime();
-	printf("Atualizando gama2 (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
+	printf("Atualizando gama2 (cpu-seconds): %.2f\n", ((float)depois-(float)antes)/100.0);
 
 
 	antes = get_runtime();
