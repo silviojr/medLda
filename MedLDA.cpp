@@ -32,8 +32,6 @@ MedLDA::MedLDA(void)
 	m_dMu       = NULL;
 	m_dEta      = NULL;
 	m_alpha     = NULL;
-	digamma_gam = NULL;
-
 }
 
 MedLDA::~MedLDA(void)
@@ -48,31 +46,18 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 				  SuffStats* ss, Params *param)
 {
 	// posterior inference
-	long antes, depois;
-	antes = get_runtime();
 	double lhood = inference(doc, ss->num_docs, gamma, phi, param);
-	depois = get_runtime();
-
 
 	// update sufficient statistics
-	antes = get_runtime();
 	double gamma_sum = 0;
 	for (int k=0; k<m_nK; k++) {
 		gamma_sum += gamma[k];
 		ss->alpha_suffstats[k] += digamma(gamma[k]);
 	}
-	depois = get_runtime();
-
-
-	antes =get_runtime();
-	#pragma omp parallel for
 	for ( int k=0; k<m_nK; k++ ) {
 		ss->alpha_suffstats[k] -= /*m_nK * */digamma(gamma_sum);
 	}
-	depois = get_runtime();
 
-
-	antes = get_runtime();
 	for (int k = 0; k < m_nK; k++) {
 		double dVal = 0;
 		for (int n = 0; n < doc->length; n++) {
@@ -84,8 +69,6 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		// suff-stats for supervised LDA
 		ss->exp[ss->num_docs][k] = dVal;
 	}
-	depois = get_runtime();
-
 	ss->num_docs = ss->num_docs + 1;
 
 	return lhood;
@@ -100,9 +83,10 @@ double MedLDA::inference(Document* doc, const int &docix,
     double converged = 1;
     double phisum = 0, lhood = 0;
     double lhood_old = 0;
-    // compute posterior dirichlet
+	double *oldphi = (double*)malloc(sizeof(double)*m_nK);
+    double *digamma_gam = (double*)malloc(sizeof(double)*m_nK);
 
-    #pragma omp parallel for
+    // compute posterior dirichlet
     for (int k = 0; k < m_nK; k++) {
         var_gamma[k] = m_alpha[k] + (doc->total/((double) m_nK));
         digamma_gam[k] = digamma(var_gamma[k]);
@@ -121,8 +105,7 @@ double MedLDA::inference(Document* doc, const int &docix,
 			phisum = 0; 
 
 			if ( param->PHI_DUALOPT != 1 ) loss_aug_predict(doc, var_gamma); // loss-augmented prediction
-			
-			#pragma omp parallel for
+
 			for (int k = 0; k < m_nK; k++) {
 				oldphi[k] = phi[n][k];
 				
@@ -132,19 +115,12 @@ double MedLDA::inference(Document* doc, const int &docix,
 								+ dVal;
 
 				//fprintf(fileptr, "%.5f:%.5f ", digamma_gam[k] + m_dLogProbW[k][doc->words[n]], dVal);
-				//if (k > 0) phisum = log_sum(phisum, phi[n][k]);
-				//else       phisum = phi[n][k]; // note, phi is in log space
-			}
-			//fprintf(fileptr, "\n");
-
-			for(int k = 0; k<m_nK;k++){
 				if (k > 0) phisum = log_sum(phisum, phi[n][k]);
 				else       phisum = phi[n][k]; // note, phi is in log space
 			}
-
+			//fprintf(fileptr, "\n");
 
 			// update gamma and normalize phi
-			#pragma omp parallel for
 			for (int k = 0; k < m_nK; k++) {
 				phi[n][k] = exp(phi[n][k] - phisum);
 				var_gamma[k] = var_gamma[k] + doc->counts[n]*(phi[n][k] - oldphi[k]);
@@ -159,6 +135,9 @@ double MedLDA::inference(Document* doc, const int &docix,
 		lhood_old = lhood;
     }
 	//fclose(fileptr);
+
+	free(oldphi);
+    free(digamma_gam);
 
     return(lhood);
 }
@@ -219,7 +198,9 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
     double converged = 1;
     double phisum = 0, lhood = 0;
     double lhood_old = 0;
+	double *oldphi = (double*)malloc(sizeof(double)*m_nK);
     int k, n, var_iter;
+    double *digamma_gam = (double*)malloc(sizeof(double)*m_nK);
 
     // compute posterior dirichlet
     for (k = 0; k < m_nK; k++) {
@@ -244,16 +225,12 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 				
 				phi[n][k] =	digamma_gam[k] + m_dLogProbW[k][doc->words[n]];
 
-				
-			}
-
-			for(int k = 0; k<m_nK;k++){
 				if (k > 0) phisum = log_sum(phisum, phi[n][k]);
 				else       phisum = phi[n][k]; // note, phi is in log space
 			}
 
 			// update gamma and normalize phi
-			for (int k = 0; k < m_nK; k++) {
+			for (k = 0; k < m_nK; k++) {
 				phi[n][k] = exp(phi[n][k] - phisum);
 				var_gamma[k] = var_gamma[k] + doc->counts[n]*(phi[n][k] - oldphi[k]);
 				// !!! a lot of extra digamma's here because of how we're computing it
@@ -267,6 +244,8 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 		lhood_old = lhood;
     }
 
+	free(oldphi);
+    free(digamma_gam);
 
     return(lhood);
 }
@@ -277,6 +256,7 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 double MedLDA::compute_lhood(Document* doc, double** phi, double* var_gamma)
 {
 	double lhood = 0, digsum = 0, var_gamma_sum = 0, alpha_sum = 0;
+	double *dig = (double*)malloc(sizeof(double)*m_nK);
 
 	for (int k = 0; k < m_nK; k++) {
 		dig[k] = digamma(var_gamma[k]);
@@ -304,6 +284,7 @@ double MedLDA::compute_lhood(Document* doc, double** phi, double* var_gamma)
 		}
 	}
 
+	free(dig);
 	return(lhood);
 }
 
@@ -462,12 +443,10 @@ int MedLDA::run_em(char* start, char* directory, Corpus* corpus, Params *param)
 		// e-step
 		for (d = 0; d < corpus->num_docs; d++) {
 			for (n = 0; n < max_length; n++) // initialize to uniform
-				#pragma omp parallel for
-				for ( int k=0; k<param->NTOPICS; k++ ){
+				for ( int k=0; k<param->NTOPICS; k++ )
 					phi[n][k] = 1.0 / (double) param->NTOPICS;
-				}
 
-			if ((d % 100) == 0) printf("Document %d\n",d);
+			if ((d % 1000) == 0) printf("Document %d\n",d);
 			lhood += doc_e_step( &(corpus->docs[d]), var_gamma[d], phi, ss, param);
 		}
 
@@ -950,13 +929,6 @@ void MedLDA::new_model(int num_docs, int num_terms, int num_topics, int num_labe
 		for (j = 0; j < num_labels; j++)
 			m_dMu[i*num_labels + j] = 0;
 
-	//oldphi
-	oldphi = (double*)malloc(sizeof(double)*m_nK);
-	digamma_gam = (double*)malloc(sizeof(double)*m_nK);
-	dig = (double*)malloc(sizeof(double)*m_nK);
-
-
-
 	m_nDim = num_docs;
 	m_dC = C;
 }
@@ -972,9 +944,6 @@ void MedLDA::free_model()
 	if ( m_dEta != NULL ) free(m_dEta);
 	if ( m_dMu != NULL )  free(m_dMu);
 	if ( m_alpha != NULL ) free(m_alpha);
-	if( oldphi ) free(oldphi);
-	if(digamma_gam) free(digamma_gam);
-	if( dig ) free(dig);
 }
 
 
