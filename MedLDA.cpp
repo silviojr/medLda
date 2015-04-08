@@ -131,10 +131,16 @@ double MedLDA::inference(Document* doc, const int &docix,
 								+ dVal;
 
 				//fprintf(fileptr, "%.5f:%.5f ", digamma_gam[k] + m_dLogProbW[k][doc->words[n]], dVal);
+				//if (k > 0) phisum = log_sum(phisum, phi[n][k]);
+				//else       phisum = phi[n][k]; // note, phi is in log space
+			}
+			//fprintf(fileptr, "\n");
+
+			for(k = 0; k<m_nK;k++){
 				if (k > 0) phisum = log_sum(phisum, phi[n][k]);
 				else       phisum = phi[n][k]; // note, phi is in log space
 			}
-			//fprintf(fileptr, "\n");
+
 
 			// update gamma and normalize phi
 
@@ -240,7 +246,7 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 				
 			}
 
-			for(k = 0; i<m_nK;k++){
+			for(k = 0; k<m_nK;k++){
 				if (k > 0) phisum = log_sum(phisum, phi[n][k]);
 				else       phisum = phi[n][k]; // note, phi is in log space
 			}
