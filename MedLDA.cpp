@@ -121,7 +121,8 @@ double MedLDA::inference(Document* doc, const int &docix,
 			phisum = 0; 
 
 			if ( param->PHI_DUALOPT != 1 ) loss_aug_predict(doc, var_gamma); // loss-augmented prediction
-
+			
+			#pragma omp parallel for
 			for (int k = 0; k < m_nK; k++) {
 				oldphi[k] = phi[n][k];
 				
@@ -143,7 +144,7 @@ double MedLDA::inference(Document* doc, const int &docix,
 
 
 			// update gamma and normalize phi
-
+			#pragma omp parallel for
 			for (int k = 0; k < m_nK; k++) {
 				phi[n][k] = exp(phi[n][k] - phisum);
 				var_gamma[k] = var_gamma[k] + doc->counts[n]*(phi[n][k] - oldphi[k]);
