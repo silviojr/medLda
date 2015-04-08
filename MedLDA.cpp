@@ -253,7 +253,7 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 			}
 
 			// update gamma and normalize phi
-			for (k = 0; k < m_nK; k++) {
+			for (int k = 0; k < m_nK; k++) {
 				phi[n][k] = exp(phi[n][k] - phisum);
 				var_gamma[k] = var_gamma[k] + doc->counts[n]*(phi[n][k] - oldphi[k]);
 				// !!! a lot of extra digamma's here because of how we're computing it
