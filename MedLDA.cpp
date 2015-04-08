@@ -52,7 +52,6 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 	antes = get_runtime();
 	double lhood = inference(doc, ss->num_docs, gamma, phi, param);
 	depois = get_runtime();
-	printf("Inferindo (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
 
 
 	// update sufficient statistics
@@ -63,7 +62,6 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		ss->alpha_suffstats[k] += digamma(gamma[k]);
 	}
 	depois = get_runtime();
-	printf("Atualizando gamma1 (cpu-seconds): %.2f\n", ((float)depois-(float)antes)/100.0);
 
 
 	antes =get_runtime();
@@ -72,7 +70,6 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		ss->alpha_suffstats[k] -= /*m_nK * */digamma(gamma_sum);
 	}
 	depois = get_runtime();
-	printf("Atualizando gama2 (cpu-seconds): %.2f\n", ((float)depois-(float)antes)/100.0);
 
 
 	antes = get_runtime();
@@ -88,7 +85,6 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		ss->exp[ss->num_docs][k] = dVal;
 	}
 	depois = get_runtime();
-	printf("Stats para supervised (cpu-seconds): %.2f\n", ((float)depois-(float)antes)/100.0);
 
 	ss->num_docs = ss->num_docs + 1;
 
@@ -241,6 +237,10 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 				
 				phi[n][k] =	digamma_gam[k] + m_dLogProbW[k][doc->words[n]];
 
+				
+			}
+
+			for(k = 0; i<m_nK;k++){
 				if (k > 0) phisum = log_sum(phisum, phi[n][k]);
 				else       phisum = phi[n][k]; // note, phi is in log space
 			}
