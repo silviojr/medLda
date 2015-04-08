@@ -61,8 +61,7 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 	for ( int k=0; k<m_nK; k++ ) {
 		ss->alpha_suffstats[k] -= /*m_nK * */digamma(gamma_sum);
 	}
-	
-	#pragma omp parallel for
+
 	for (int k = 0; k < m_nK; k++) {
 		double dVal = 0;
 		for (int n = 0; n < doc->length; n++) {
@@ -90,6 +89,8 @@ double MedLDA::inference(Document* doc, const int &docix,
     double phisum = 0, lhood = 0;
     double lhood_old = 0;
     // compute posterior dirichlet
+
+    #pragma omp parallel for
     for (int k = 0; k < m_nK; k++) {
         var_gamma[k] = m_alpha[k] + (doc->total/((double) m_nK));
         digamma_gam[k] = digamma(var_gamma[k]);
@@ -124,6 +125,7 @@ double MedLDA::inference(Document* doc, const int &docix,
 			//fprintf(fileptr, "\n");
 
 			// update gamma and normalize phi
+
 			for (int k = 0; k < m_nK; k++) {
 				phi[n][k] = exp(phi[n][k] - phisum);
 				var_gamma[k] = var_gamma[k] + doc->counts[n]*(phi[n][k] - oldphi[k]);
@@ -437,8 +439,10 @@ int MedLDA::run_em(char* start, char* directory, Corpus* corpus, Params *param)
 		// e-step
 		for (d = 0; d < corpus->num_docs; d++) {
 			for (n = 0; n < max_length; n++) // initialize to uniform
-				for ( int k=0; k<param->NTOPICS; k++ )
+				#pragma omp parallel for
+				for ( int k=0; k<param->NTOPICS; k++ ){
 					phi[n][k] = 1.0 / (double) param->NTOPICS;
+				}
 
 			if ((d % 1000) == 0) printf("Document %d\n",d);
 			lhood += doc_e_step( &(corpus->docs[d]), var_gamma[d], phi, ss, param);
