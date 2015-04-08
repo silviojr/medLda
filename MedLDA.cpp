@@ -23,8 +23,6 @@
 #include "svmlight/svm_common.h"
 #include "Params.h"
 #include <iostream>
-#include "tbb/tbb.h"
-using namespace tbb;
 
 using namespace std;
 
@@ -58,10 +56,13 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		gamma_sum += gamma[k];
 		ss->alpha_suffstats[k] += digamma(gamma[k]);
 	}
+
+	#pragma omp parallel for
 	for ( int k=0; k<m_nK; k++ ) {
 		ss->alpha_suffstats[k] -= /*m_nK * */digamma(gamma_sum);
 	}
-
+	
+	#pragma omp parallel for
 	for (int k = 0; k < m_nK; k++) {
 		double dVal = 0;
 		for (int n = 0; n < doc->length; n++) {
@@ -73,6 +74,7 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		// suff-stats for supervised LDA
 		ss->exp[ss->num_docs][k] = dVal;
 	}
+
 	ss->num_docs = ss->num_docs + 1;
 
 	return lhood;
