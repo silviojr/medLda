@@ -48,20 +48,34 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 				  SuffStats* ss, Params *param)
 {
 	// posterior inference
+	long antes, depois;
+	antes = get_runtime();
 	double lhood = inference(doc, ss->num_docs, gamma, phi, param);
+	depois = get_runtime();
+	printf("Inferindo (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
+
 
 	// update sufficient statistics
+	antes = get_runtime();
 	double gamma_sum = 0;
 	for (int k=0; k<m_nK; k++) {
 		gamma_sum += gamma[k];
 		ss->alpha_suffstats[k] += digamma(gamma[k]);
 	}
+	depois = get_runtime();
+	printf("Atualizando gamma1 (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
 
+
+	antes =get_runtime();
 	#pragma omp parallel for
 	for ( int k=0; k<m_nK; k++ ) {
 		ss->alpha_suffstats[k] -= /*m_nK * */digamma(gamma_sum);
 	}
+	depois = get_runtime();
+	printf("Atualizando gama2 (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
 
+
+	antes = get_runtime();
 	for (int k = 0; k < m_nK; k++) {
 		double dVal = 0;
 		for (int n = 0; n < doc->length; n++) {
@@ -73,6 +87,8 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		// suff-stats for supervised LDA
 		ss->exp[ss->num_docs][k] = dVal;
 	}
+	depois = get_runtime();
+	printf("Stats para supervised (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
 
 	ss->num_docs = ss->num_docs + 1;
 

@@ -1,3 +1,4 @@
 setup (K: 20; C: 1.000; fold: 5; ell: 8.00; dual-opt: 1; alpha: 1; svm_alg: 2; maxIt: 2): accuracy 0.160
 setup (K: 20; C: 1.000; fold: 5; ell: 8.00; dual-opt: 1; alpha: 1; svm_alg: 2; maxIt: 2): accuracy 0.175
 setup (K: 20; C: 1.000; fold: 5; ell: 8.00; dual-opt: 1; alpha: 1; svm_alg: 2; maxIt: 2): accuracy 0.160
+setup (K: 20; C: 1.000; fold: 5; ell: 8.00; dual-opt: 1; alpha: 1; svm_alg: 2; maxIt: 2): accuracy 0.160
