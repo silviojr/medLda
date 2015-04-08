@@ -63,7 +63,7 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		ss->alpha_suffstats[k] += digamma(gamma[k]);
 	}
 	depois = get_runtime();
-	printf("Atualizando gamma1 (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
+	printf("Atualizando gamma1 (cpu-seconds): %.2f\n", ((float)depois-(float)antes)/100.0);
 
 
 	antes =get_runtime();
@@ -88,7 +88,7 @@ double MedLDA::doc_e_step(Document* doc, double* gamma, double** phi,
 		ss->exp[ss->num_docs][k] = dVal;
 	}
 	depois = get_runtime();
-	printf("Stats para supervised (cpu-seconds): %.2f\n", ((float)antes-(float)depois)/100.0);
+	printf("Stats para supervised (cpu-seconds): %.2f\n", ((float)depois-(float)antes)/100.0);
 
 	ss->num_docs = ss->num_docs + 1;
 
@@ -460,7 +460,7 @@ int MedLDA::run_em(char* start, char* directory, Corpus* corpus, Params *param)
 					phi[n][k] = 1.0 / (double) param->NTOPICS;
 				}
 
-			if ((d % 1000) == 0) printf("Document %d\n",d);
+			if ((d % 1) == 0) printf("Document %d\n",d);
 			lhood += doc_e_step( &(corpus->docs[d]), var_gamma[d], phi, ss, param);
 		}
 
