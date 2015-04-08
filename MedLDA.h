@@ -94,6 +94,11 @@ public:
 	double **m_dLogProbW;
 	double m_dDeltaEll;   // adjustable 0/ell loss function
 
+	double *oldphi;
+	double *digamma_gam;
+	double *dig;
+
+
 private:
 	double *m_alpha;
 	double *m_dMu;

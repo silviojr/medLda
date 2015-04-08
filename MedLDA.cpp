@@ -23,6 +23,8 @@
 #include "svmlight/svm_common.h"
 #include "Params.h"
 #include <iostream>
+#include "tbb/tbb.h"
+using namespace tbb;
 
 using namespace std;
 
@@ -32,6 +34,8 @@ MedLDA::MedLDA(void)
 	m_dMu       = NULL;
 	m_dEta      = NULL;
 	m_alpha     = NULL;
+	digamma_gam = NULL;
+
 }
 
 MedLDA::~MedLDA(void)
@@ -83,9 +87,6 @@ double MedLDA::inference(Document* doc, const int &docix,
     double converged = 1;
     double phisum = 0, lhood = 0;
     double lhood_old = 0;
-	double *oldphi = (double*)malloc(sizeof(double)*m_nK);
-    double *digamma_gam = (double*)malloc(sizeof(double)*m_nK);
-
     // compute posterior dirichlet
     for (int k = 0; k < m_nK; k++) {
         var_gamma[k] = m_alpha[k] + (doc->total/((double) m_nK));
@@ -135,9 +136,6 @@ double MedLDA::inference(Document* doc, const int &docix,
 		lhood_old = lhood;
     }
 	//fclose(fileptr);
-
-	free(oldphi);
-    free(digamma_gam);
 
     return(lhood);
 }
@@ -198,9 +196,7 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
     double converged = 1;
     double phisum = 0, lhood = 0;
     double lhood_old = 0;
-	double *oldphi = (double*)malloc(sizeof(double)*m_nK);
     int k, n, var_iter;
-    double *digamma_gam = (double*)malloc(sizeof(double)*m_nK);
 
     // compute posterior dirichlet
     for (k = 0; k < m_nK; k++) {
@@ -244,8 +240,6 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 		lhood_old = lhood;
     }
 
-	free(oldphi);
-    free(digamma_gam);
 
     return(lhood);
 }
@@ -256,7 +250,6 @@ double MedLDA::inference_pred(Document* doc, double* var_gamma, double** phi, Pa
 double MedLDA::compute_lhood(Document* doc, double** phi, double* var_gamma)
 {
 	double lhood = 0, digsum = 0, var_gamma_sum = 0, alpha_sum = 0;
-	double *dig = (double*)malloc(sizeof(double)*m_nK);
 
 	for (int k = 0; k < m_nK; k++) {
 		dig[k] = digamma(var_gamma[k]);
@@ -284,7 +277,6 @@ double MedLDA::compute_lhood(Document* doc, double** phi, double* var_gamma)
 		}
 	}
 
-	free(dig);
 	return(lhood);
 }
 
@@ -929,6 +921,13 @@ void MedLDA::new_model(int num_docs, int num_terms, int num_topics, int num_labe
 		for (j = 0; j < num_labels; j++)
 			m_dMu[i*num_labels + j] = 0;
 
+	//oldphi
+	oldphi = (double*)malloc(sizeof(double)*m_nK);
+	digamma_gam = (double*)malloc(sizeof(double)*m_nK);
+	dig = (double*)malloc(sizeof(double)*m_nK);
+
+
+
 	m_nDim = num_docs;
 	m_dC = C;
 }
@@ -944,6 +943,9 @@ void MedLDA::free_model()
 	if ( m_dEta != NULL ) free(m_dEta);
 	if ( m_dMu != NULL )  free(m_dMu);
 	if ( m_alpha != NULL ) free(m_alpha);
+	if( oldphi ) free(oldphi);
+	if(digamma_gam) free(digamma_gam);
+	if( dig ) free(dig);
 }
 
 
